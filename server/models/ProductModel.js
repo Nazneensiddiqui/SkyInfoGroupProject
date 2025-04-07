@@ -39,17 +39,21 @@ const ProductSchema = new mongoose.Schema({
         type:Number,
         default:0,
     },
-    images:{
-        type:Array,
-    },
+    images:[],
     color:{
         type:String,
         require:true,
     },
     ratings:[{
         star:Number,
+        comment: String,
         postedby:{type:mongoose.Schema.Types.ObjectId, ref:"user"}
-    }]
+    }],
+    totalRating:{
+        type:Number,
+        default:0,
+    
+    } 
     
 },
 { timestamps: true });

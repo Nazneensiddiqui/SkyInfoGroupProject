@@ -1,23 +1,27 @@
 const Product = require("../models/ProductModel");
-const asyncHandler=require("express-async-handler");
-const slugify=require("slugify")
+const asyncHandler = require("express-async-handler");
+const User = require("../models/userModel")
+const slugify = require("slugify");
+const ValidateMongoDbId = require("../utils/validateMongodbId");
+const cloudinaryUploadImg = require("../utils/Cloudinery");
+ const fs = require("fs")
 
-const CreateProduct = asyncHandler(async(req,res)=>{
-try {
-    if(req.body.title){
-        req.body.slug=slugify(req.body.title)
+const CreateProduct = asyncHandler(async (req, res) => {
+    try {
+        if (req.body.title) {
+            req.body.slug = slugify(req.body.title)
+        }
+        const newProduct = await Product.create(req.body)
+        res.json(newProduct)
+    } catch (error) {
+        throw new Error(error)
     }
-  const newProduct = await Product.create(req.body) 
-  res.json(newProduct) 
-} catch (error) {
-  throw new Error(error)  
-}
 });
 
-const getaProduct = asyncHandler(async(req,res)=>{
-   const {id}= req.params;
+const getaProduct = asyncHandler(async (req, res) => {
+    const { id } = req.params;
     try {
- const findProduct = await Product.findById(id)
+        const findProduct = await Product.findById(id)
         res.json(findProduct)
     } catch (error) {
         throw new Error(error)
@@ -76,39 +80,165 @@ const getAllProduct = asyncHandler(async (req, res, next) => {
     }
 });
 
-const UpdateProduct = asyncHandler(async(req,res)=>{
-    const {id} = req.params
+const UpdateProduct = asyncHandler(async (req, res) => {
+    const { id } = req.params
     try {
-        if(req.body.title){
+        if (req.body.title) {
             req.body.slug = slugify(req.body.title)
         }
-        const UpdateProduct = await Product.findByIdAndUpdate(id, req.body , {
-            new:true,
+        const UpdateProduct = await Product.findByIdAndUpdate(id, req.body, {
+            new: true,
         })
         res.json(UpdateProduct)
     } catch (error) {
-       throw new Error(error) 
+        throw new Error(error)
     }
 })
 
-const DeleteProduct = asyncHandler(async(req,res)=>{
-    const {id} = req.params
+const DeleteProduct = asyncHandler(async (req, res) => {
+    const { id } = req.params
     try {
         const deleteProduct = await Product.findByIdAndDelete(id)
         res.json(deleteProduct)
     } catch (error) {
-       throw new Error(error) 
+        throw new Error(error)
+    }
+});
+
+const AddToWishlist = asyncHandler(async (req, res) => {
+    const { _id } = req.user;
+    const { prodId } = req.body;
+    try {
+        const user = await User.findById(_id);
+        const alreadyAdded = user.wishlist.find((id) => id.toString() === prodId);
+        if (alreadyAdded) {
+            let user = await User.findByIdAndUpdate(_id,
+                {
+                    $pull: { wishlist: prodId },
+                },
+                { new: true }
+            );
+            res.json(user);
+        } else {
+            let user = await User.findByIdAndUpdate(
+                _id,
+                {
+                    $push: { wishlist: prodId }
+                },
+                {
+                    new: true,
+                }
+            );
+            res.json(user)
+        }
+    } catch (error) {
+        throw new Error(error)
+    }
+});
+
+const Rating = asyncHandler(async (req, res) => {
+    const { _id } = req.user;
+    const { star, prodId, comment } = req.body;
+    try {
+        const product = await Product.findById(prodId);
+        let alreadyRated = product.ratings.find(
+            (userId) => userId.postedby.toString() === _id.toString());
+        if (alreadyRated) {
+
+            const updateRating = await Product.updateOne(
+                {
+                    ratings: { $elemMatch: alreadyRated }
+                },
+                {
+                    $set: { "ratings.$.star": star , "ratings.$.comment": comment }
+                },
+                {
+                    new: true,
+                }
+            );
+        } else {
+            const rateProduct = await Product.findByIdAndUpdate(
+                prodId,
+                {
+                    $push: {
+                        ratings: {
+                            star: star,
+                            comment:comment,
+                            postedby: _id,
+                        }
+                    }
+                },
+                { new: true }
+            );
+        }
+
+        const getallRating = await Product.findById(prodId);
+        let totalRating = getallRating.ratings.length;
+        let ratingSum = getallRating.ratings.map((item)=> item.star)
+        .reduce((prev , curr)=> prev + curr , 0);
+        let actualRating = Math.round(ratingSum / totalRating);
+        let finalProduct = await Product.findByIdAndUpdate(
+            prodId,
+            {
+            totalRating : actualRating
+            },
+            {new : true}
+        );
+       return res.json(finalProduct)
+
+    } catch (error) {
+        throw new Error(error)
+    }
+})
+
+
+//upload Images:
+const uploadImages = asyncHandler(async (req, res) => {
+    console.log(req.files)
+    const { id } = req.params;
+    ValidateMongoDbId(id);
+    
+    try {
+        const uploader = (path) => cloudinaryUploadImg(path, "images");
+        const urls = [];
+
+        const files = req.files;
+
+        if (!files || !Array.isArray(files)) {
+            return res.status(400).json({ message: "No files uploaded or wrong format" });
+        }
+
+        for (const file of files) {
+            const { path } = file;
+            const newpath = await uploader(path);
+            urls.push(newpath);
+             fs.unlinkSync(path);
+        }
+
+        const findProduct = await Product.findByIdAndUpdate(
+            id,
+            {
+                images: urls.map((file) => file),
+            },
+            { new: true }
+        );
+
+        res.json(findProduct);
+    } catch (error) {
+        throw new Error(error);
     }
 });
 
 
 
 
-
-module.exports={
-CreateProduct,
-getaProduct,
-getAllProduct,
-UpdateProduct,
-DeleteProduct
+module.exports = {
+    CreateProduct,
+    getaProduct,
+    getAllProduct,
+    UpdateProduct,
+    DeleteProduct,
+    AddToWishlist,
+    Rating,
+    uploadImages 
 }

@@ -1,21 +1,22 @@
 const nodemailer = require("nodemailer")
 const asyncHandler = require("express-async-handler")
+require("dotenv").config();
 
 const sendEmail = asyncHandler(async(data,req,res)=>{
     let transporter = nodemailer.createTransport({
-        host: "smtp.ethereal.email",
+        host: "smtp.gmail.com",
         port: 587,
         secure: false, // true for port 465, false for other ports
         auth: {
-          user: process.env.MAIL_ID,
-          pass: process.env.MP,
+            user: process.env.MAIL_ID, // Gmail address
+            pass: process.env.MP, // App Password
         },
       });
       
       
         // send mail with defined transport object
         let info = await transporter.sendMail({
-          from: '"Maddison Foo Koch 👻" <maddison53@ethereal.email>', // sender address
+          from: '"Hey 👻" <maddison53@ethereal.email>', // sender address
           to: data.to, // list of receivers
           subject: data.subject, // Subject line
           text: data.text, // plain text body
