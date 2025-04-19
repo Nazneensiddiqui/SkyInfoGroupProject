@@ -798,9 +798,9 @@ const createOrder = asyncHandler(async(req,res)=>{
     let userCart = await Cart.findOne({orderby: user._id});
     let finalAmount = 0;
     if(couponApplied && userCart.totalAfterDiscount){
-      finalAmount = userCart.totalAfterDiscount*100
+      finalAmount = userCart.totalAfterDiscount;
     }else{
-      finalAmount = userCart.cartTotal*100;
+      finalAmount = userCart.cartTotal;
     }
 
     let newOrder = await new Order({
@@ -824,13 +824,46 @@ orderStatus : "Cash On Delivery",
         }
       };
     });
-    
+
     const updated = await Product.bulkWrite(update,{});
     res.json({message : "success"})
   } catch ({error}) {
     throw new Error("Something went wrong while applying the coupon");
   }
-})
+});
+
+const getOrders  = asyncHandler(async(req,res)=>{
+  const {_id}= req.user;
+  ValidateMongoDbId(_id);
+  try {
+    const userOrders =  await  Order.findOne({orderby: _id}).populate("products.product").exec()
+    res.json(userOrders)
+  } catch (error) {
+    throw new Error (error)
+  }
+});
+
+const updateOrderStatus   = asyncHandler(async(req,res)=>{
+   const {status}= req.body;
+   const {id} =req.params; 
+   ValidateMongoDbId(_id);
+  try {
+    const updateOrderstatus =  await  Order.findByIdAndUpdate(id , {
+      orderStatus : status,
+      paymentIntent:{
+        status : status,
+      },
+    },
+  {
+    new : true
+  })
+    res.json(userOrders)
+  } catch (error) {
+    throw new Error (error)
+  }
+});
+
+
 
 
 
@@ -855,5 +888,7 @@ module.exports = {
   getUsercart,
   emptyCart,
   ApplyCoupon,
-  createOrder
+  createOrder,
+  getOrders,
+  updateOrderStatus
 };

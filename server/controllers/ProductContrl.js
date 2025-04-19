@@ -3,8 +3,11 @@ const asyncHandler = require("express-async-handler");
 const User = require("../models/userModel")
 const slugify = require("slugify");
 const ValidateMongoDbId = require("../utils/validateMongodbId");
-const cloudinaryUploadImg = require("../utils/Cloudinery");
- const fs = require("fs")
+const {cloudinaryUploadImg , cloudinaryDeleteImg} = require("../utils/Cloudinery");
+ const fs = require("fs");
+const path = require("path");
+
+
 
 const CreateProduct = asyncHandler(async (req, res) => {
     try {
@@ -194,26 +197,24 @@ const Rating = asyncHandler(async (req, res) => {
 
 //upload Images:
 const uploadImages = asyncHandler(async (req, res) => {
-    console.log(req.files)
+
     const { id } = req.params;
     ValidateMongoDbId(id);
     
     try {
         const uploader = (path) => cloudinaryUploadImg(path, "images");
         const urls = [];
-
         const files = req.files;
-
-        if (!files || !Array.isArray(files)) {
+       if (!files || !Array.isArray(files)) {
             return res.status(400).json({ message: "No files uploaded or wrong format" });
         }
-
-        for (const file of files) {
+       for (const file of files) {
             const { path } = file;
             const newpath = await uploader(path);
             urls.push(newpath);
              fs.unlinkSync(path);
         }
+
 
         const findProduct = await Product.findByIdAndUpdate(
             id,
@@ -230,6 +231,17 @@ const uploadImages = asyncHandler(async (req, res) => {
 });
 
 
+const deleteImage = asyncHandler(async(req,res)=>{
+    const {id} = req.params;
+    try {
+        const deleted = cloudinaryDeleteImg(id, "images");
+        res.json({message: "Deleted"})
+    } catch (error) {
+       throw new Error(error) 
+    }
+})
+
+
 
 
 module.exports = {
@@ -240,5 +252,6 @@ module.exports = {
     DeleteProduct,
     AddToWishlist,
     Rating,
-    uploadImages 
+    uploadImages ,
+    deleteImage
 }

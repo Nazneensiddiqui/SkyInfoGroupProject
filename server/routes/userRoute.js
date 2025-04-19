@@ -13,7 +13,9 @@ route.post("/forget-password-token",UserControler.ForgotPasswordToken)
 
 route.put("/reset-password/:token",UserControler.resetPassword)
 route.put("/password",authMiddlware, UserControler.updatePassword)
+
 route.get("/all-users",UserControler.getallUser)
+route.get("/get-order", authMiddlware,UserControler.getOrders)
 route.get("/refresh", UserControler.handleRefreshToken)
 route.get("/wishlist" ,authMiddlware, UserControler.getWishlist)
 route.post("/cart-user" ,authMiddlware, UserControler.getUsercart)
@@ -22,6 +24,9 @@ route.get("/:id" ,authMiddlware,isAdmin, UserControler.GetaUser)
 
 route.delete("/empty-cart", authMiddlware, UserControler.emptyCart);
 route.delete("/:id",UserControler.deleteUser)
+
+
+route.put("/order/update-order/:id",authMiddlware, isAdmin,UserControler.updateOrderStatus)
 route.put("/edit-user",authMiddlware, UserControler.updatedUser)
 route.put("/save-address",authMiddlware, UserControler.SaveAddress)
 route.put("/block-user/:id",authMiddlware, UserControler.BlockedUser)

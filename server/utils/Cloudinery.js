@@ -50,16 +50,41 @@ cloudinary.config({
 // };
 
 const cloudinaryUploadImg = async (fileToUpload) => {
-    return new Promise((resolve, reject) => {
-      cloudinary.uploader.upload(fileToUpload, { folder: "images" }, (error, result) => {
-        if (error) reject(error);
-        else resolve({
+    return new Promise((resolve) => {
+      cloudinary.uploader.upload(fileToUpload, (result) => {
+       resolve(
+          {
           url: result.secure_url,
+          asset_id: result.asset_id,
           public_id: result.public_id,
-        });
+        },
+        {
+          resource_type: "auto",
+        }
+      );
+      });
+    });
+  };
+
+  const cloudinaryDeleteImg = async (fileToDelete) => {
+    return new Promise((resolve) => {
+      cloudinary.uploader.upload(fileToDelete, (result) => {
+       resolve(
+          {
+          url: result.secure_url,
+          asset_id: result.asset_id,
+          public_id: result.public_id,
+        },
+        {
+          resource_type: "auto",
+        }
+      );
       });
     });
   };
   
 
-module.exports = cloudinaryUploadImg;
+module.exports = {
+  cloudinaryUploadImg,
+  cloudinaryDeleteImg
+};
